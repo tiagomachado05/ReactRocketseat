@@ -1,50 +1,112 @@
+import { format, formatDistanceToNow } from 'date-fns';
+import ptBR from 'date-fns/locale/pt-BR' 
+import { useState } from 'react';
+
 import { Avatar } from './Avatar'
 import { Comment } from './Comment'
 import styles from './Post.module.css'
 
-export function Post() {
+export function Post({ author, publishedAt, content }) {
+    const [comments, setComments] = useState([
+        'Brabo demais!'
+    ])
+
+    const [newCommentText, setNewCommentText] = useState('')
+
+    const publishedDateFormatted = format(publishedAt, "d 'de' LLLL 'às' HH:mm'h'", {
+        locale: ptBR,
+    })
+
+    const publishedDateRelativeToNow = formatDistanceToNow(publishedAt, {
+        locale: ptBR,
+        addSuffix: true,
+    })
+
+    function userCreatNewComment() {
+        event.preventDefault()
+
+        setComments([...comments, newCommentText]);
+        setNewCommentText('')
+    }
+
+    function userNewCommentChange() {
+        event.target.setCustomValidity('')
+        setNewCommentText(event.target.value);
+    }
+
+    function userNewCommentInvalid() {
+
+        event.target.setCustomValidity('esse campo é obrigatório')
+    }
+
+    function deleteComment(commentToDelete) {
+        //imutabilidade = as coisas não sofrem mutação, criamos um novo valor (um novo espaço na memória)
+
+        const commentsWithoutDeletedOne = comments.filter(comment => {
+            return comment !== commentToDelete;
+        })
+
+        setComments(commentsWithoutDeletedOne);
+    }
+
+    const isNewCommentEmpty = newCommentText.length == 0;
+
     return (
         <article className={styles.post}>
             <header>
                 <div className={styles.author}>
-                    <Avatar src='https://github.com/tiagomachado05.png'/>
+                    <Avatar src={author.avatarUrl}/>
                     <div className={styles.authorInfo}>
-                        <strong>Tiago Machado</strong>
-                        <span>Web Developer</span>
+                        <strong>{author.name}</strong>
+                        <span>{author.role}</span>
                     </div>
 
                 </div>
 
-                <time title="23 de Junho às 14:20h" dateTime="2022-06-23">Publicado há 1h</time>
+                <time title={publishedDateFormatted} dateTime={publishedAt.toISOString()}>
+                    {publishedDateRelativeToNow}
+                </time>
 
             </header>
 
             <div className={styles.content}>
-                <p>Testando aqui esse React</p>
-                <p>Morrendo de fome mas seguimos em jogo. Fiz o projeto aqui da Rocketseat</p>
-                <p><a href="https://www.instagram.com/tiago_machado05/" target="_blank">tiago_machado05</a></p>
-                <p>
-                    <a href="">#novoprojeto</a>{' '}
-                    <a href="">#rocketseat</a>{' '}
-                    <a href="">#react</a>
-                </p>
+                {content.map(line => {
+                    if (line.type == "paragraph") {
+                        return <p key={line.content}>{line.content}</p>;
+                    } else if (line.type == 'link') {
+                        return <p key={line.content}><a href=''>{line.content}</a></p>;
+                    }
+                })}
             </div>
 
-            <form className={styles.commentForm}>
+            <form onSubmit={userCreatNewComment} className={styles.commentForm}>
                 <strong>Deixe seu feedback</strong>
 
                 <textarea
+                    name="comment"
                     placeholder="Deixe um comentário"
+                    value={newCommentText}
+                    onChange={userNewCommentChange}
+                    onInvalid={userNewCommentInvalid}
+                    required
                 />
                 <footer>
-                    <button type='submit'>Publicar</button>
+                    <button type='submit' disabled={isNewCommentEmpty}>
+                        Publicar
+                    </button>
                 </footer>
             </form>
 
             <div className={styles.commentList}>
-                <Comment />
-                <Comment />
-                <Comment />
+                {comments.map(comment => {
+                    return (
+                        <Comment 
+                            key={comment} 
+                            content={comment} 
+                            onDeleteComment={deleteComment} 
+                        /> 
+                    )
+                })}
             </div>
         </article>
     )
